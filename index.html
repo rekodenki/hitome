@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hitome Prototype</title>
+  <title>Hitome Shadow Prototype</title>
   <style>
     body {
       margin: 0;
       background: #000;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
     }
-    video {
+    canvas {
       width: 100vw;
       height: 100vh;
       object-fit: cover;
@@ -22,22 +23,50 @@
 </head>
 <body>
 
-  <video id="rawVideo" autoplay playsinline></video>
+  <canvas id="shadow"></canvas>
 
   <script>
-    async function start() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false
-        });
+    const canvas = document.getElementById("shadow");
+    const ctx = canvas.getContext("2d");
+    const video = document.createElement("video");
 
-        const video = document.getElementById("rawVideo");
-        video.srcObject = stream;
-      } catch(err) {
-        alert("カメラが使えません: " + err.message);
-      }
+    video.autoplay = true;
+    video.playsInline = true;
+
+    async function start() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false
+      });
+      video.srcObject = stream;
+
+      video.onloadedmetadata = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        draw();
+      };
     }
+
+    function draw() {
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // 元映像
+      ctx.drawImage(video, 0, 0, w, h);
+
+      // 全体暗くする
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      ctx.fillRect(0, 0, w, h);
+
+      // 簡易ブラー（ずらし重ね）
+      ctx.globalAlpha = 0.4;
+      ctx.drawImage(canvas, -4, 0, w + 8, h);
+      ctx.drawImage(canvas, 0, -4, w, h + 8);
+      ctx.globalAlpha = 1.0;
+
+      requestAnimationFrame(draw);
+    }
+
     start();
   </script>
 
